@@ -15,8 +15,8 @@ Visual Command Overlay for V Rising
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/YOURNAME/bloodcraft-overlay-csharp
-   cd bloodcraft-overlay-csharp
+   git clone https://github.com/sevenevesai/VRising-Command-Overlay.git
+   cd VRising-Command-Overlay
 
 2. Open `overlayc.csproj` in Visual Studio 2022+ or VS Code with C# Dev Kit
 
