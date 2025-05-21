@@ -1,25 +1,50 @@
 # VRising-Command-Overlay
-Visual Command Overlay for V Rising
 
-**An open-source, low-impact, visual overlay for mods in [V Rising](https://store.steampowered.com/app/1604030/V_Rising/).**
+**Visual command overlay for modded V Rising.**
 
-🔹 Rewritten from scratch in C# for native EXE behavior  
-🔹 Clickable commands that auto-send into the in-game chat  
-🔹 Visual prompt menus for classes, spells, stats, etc.  
-🔹 Drag-and-drop UI  
-🔹 Built-in command config via `commands.json` - easily customised, completely dynamic
+An open-source, low-impact overlay for issuing mod commands in [V Rising](https://store.steampowered.com/app/1604030/V_Rising/) via a simple in-game UI.
 
 ---
 
-## 🛠️ Setup
+### Features
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/sevenevesai/VRising-Command-Overlay.git
-   cd VRising-Command-Overlay
+- Written in C# — runs natively as a Windows `.exe`
+- Clickable buttons that send chat commands to the game
+- Supports prompts with text input or option picklists
+- Drag-to-reposition overlay anywhere on screen
+- Backed by a user-editable `commands.json`
+- Dynamic: just edit the JSON and restart to change the UI
 
-2. Open `overlayc.csproj` in Visual Studio 2022+ or VS Code with C# Dev Kit
+---
 
-3. Build the project (`dotnet build`) or `F5` to run.
+## Setup
 
-4. Add/edit commands in `commands.json`.
+1. **Clone the repo**
+
+    ```bash
+    git clone https://github.com/sevenevesai/VRising-Command-Overlay.git
+    cd VRising-Command-Overlay
+    ```
+
+2. **Open the project**  
+   Open `overlayc.csproj` in Visual Studio 2022+ or VS Code with the C# Dev Kit.
+
+3. **Build or run**  
+   Press `F5` or use:
+
+    ```bash
+    dotnet build
+    ```
+
+4. **Customize your commands**  
+   Edit `commands.json` to change categories, commands, or prompts.  
+   Changes take effect on restart.
+
+---
+
+## Optional: Build as standalone `.exe`
+
+To generate a portable single-file executable:
+
+```bash
+dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
