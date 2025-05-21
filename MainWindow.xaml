@@ -1,0 +1,11 @@
+<Window x:Class="overlayc.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VRising Overlay" Height="700" Width="80"
+        WindowStyle="None" Topmost="True" ShowActivated="False"
+        AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False">
+    <Grid Background="Transparent">
+        <StackPanel x:Name="IconBarPanel" Orientation="Vertical"/>
+    </Grid>
+</Window>
