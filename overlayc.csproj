@@ -12,20 +12,22 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
+  <!-- (Optional) Embed font as WPF Resource if needed for `pack://` usage -->
   <ItemGroup>
-  <!-- Embed every font file in fonts\ as a WPF Resource -->
-  <Resource Include="fonts\NocturneSerif-Regular.ttf" />
-  <Resource Include="fonts\NocturneSerif-Regular.otf" />
-  <Resource Include="fonts\NocturneSerif-Regular.woff" />
-</ItemGroup>
+    <Resource Include="fonts\NocturneSerif-Regular.ttf" />
+    <Resource Include="fonts\NocturneSerif-Regular.otf" />
+    <Resource Include="fonts\NocturneSerif-Regular.woff" />
+  </ItemGroup>
 
-
-  <!-- Copy commands.json and all imgs to bin output -->
+  <!-- Ensure these files/folders are physically copied to the output -->
   <ItemGroup>
     <None Include="commands.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Content Include="imgs\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="fonts\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
