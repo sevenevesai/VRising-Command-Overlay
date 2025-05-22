@@ -1,0 +1,212 @@
+<Window x:Class="overlayc.CommandPanel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:overlayc"
+        Title="Commands"
+        Width="235"
+        SizeToContent="Height"               
+        MaxHeight="600"                      
+        WindowStyle="None"
+        Topmost="True"
+        ShowActivated="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Focusable="False">
+
+  <Window.Resources>
+    <FontFamily x:Key="SerifFont">
+      pack://application:,,,/overlayc;component/fonts/NocturneSerif-Regular.ttf#Nocturne Serif
+    </FontFamily>
+    <SolidColorBrush x:Key="HeaderBg"     Color="#182531"/>
+    <SolidColorBrush x:Key="ContentBg"    Color="#0F181F"/>
+    <SolidColorBrush x:Key="PanelBorder"  Color="#4E5055"/>
+    <SolidColorBrush x:Key="TextHeader"   Color="#E2E2E2"/>
+    <SolidColorBrush x:Key="ButtonBg"     Color="#000B0B"/>
+    <SolidColorBrush x:Key="ButtonFg"     Color="#929292"/>
+    <SolidColorBrush x:Key="ButtonBorder" Color="#010506"/>
+
+    <DropShadowEffect x:Key="HeaderTextShadow"
+                      Color="Black"
+                      BlurRadius="2"
+                      ShadowDepth="1"
+                      Direction="270"
+                      Opacity="0.6"/>
+
+    <Style x:Key="NoHighlightItem" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <ContentPresenter/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="Button">
+      <Setter Property="Focusable" Value="False"/>
+    </Style>
+
+    <Style x:Key="CommandButtonStyle" TargetType="Button">
+      <Setter Property="FontFamily" Value="{StaticResource SerifFont}"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Background" Value="{StaticResource ButtonBg}"/>
+      <Setter Property="Foreground" Value="{StaticResource ButtonFg}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource ButtonBorder}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="Margin" Value="0,2,0,2"/>
+      <Setter Property="MinHeight" Value="24"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="5"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="#0F0F1315"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="#1A0F1315"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="HeaderText" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource SerifFont}"/>
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="Foreground" Value="{StaticResource TextHeader}"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="Effect" Value="{StaticResource HeaderTextShadow}"/>
+      <Setter Property="Focusable" Value="False"/>
+    </Style>
+
+    <DataTemplate DataType="{x:Type local:Command}">
+      <Button Style="{StaticResource CommandButtonStyle}"
+              Content="{Binding label}"
+              ToolTip="{Binding description}"
+              Click="OnCommandClick"/>
+    </DataTemplate>
+
+    <Style x:Key="InvisibleRepeatButton" TargetType="RepeatButton">
+      <Setter Property="Height" Value="0"/>
+      <Setter Property="MinHeight" Value="0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RepeatButton">
+            <Rectangle Fill="Transparent"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="VRThumbStyle" TargetType="Thumb">
+      <Setter Property="Background" Value="#555"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Thumb">
+            <Rectangle Fill="{TemplateBinding Background}" RadiusX="4" RadiusY="4"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="VRScrollBarStyle" TargetType="ScrollBar">
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Background" Value="#222"/>
+      <Setter Property="Width" Value="8"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Grid Background="{TemplateBinding Background}">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="0"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="0"/>
+              </Grid.RowDefinitions>
+              <Track x:Name="PART_Track"
+                     Grid.Row="1"
+                     IsDirectionReversed="True"
+                     Height="Auto">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.LineUpCommand"
+                                Style="{StaticResource InvisibleRepeatButton}"/>
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb Style="{StaticResource VRThumbStyle}"/>
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.LineDownCommand"
+                                Style="{StaticResource InvisibleRepeatButton}"/>
+                </Track.IncreaseRepeatButton>
+              </Track>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Border CornerRadius="5"
+          BorderBrush="{StaticResource PanelBorder}"
+          BorderThickness="1"
+          SnapsToDevicePixels="True"
+          Focusable="False">
+    <Grid Focusable="False">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <!-- Header -->
+      <Border Grid.Row="0"
+              Background="{StaticResource HeaderBg}"
+              Padding="10,8"
+              Focusable="False">
+        <TextBlock Style="{StaticResource HeaderText}"
+                   Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"/>
+      </Border>
+
+      <!-- Commands list -->
+      <Border Grid.Row="1"
+              Background="{StaticResource ContentBg}"
+              Padding="8"
+              Focusable="False">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+          <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource VRScrollBarStyle}"/>
+          </ScrollViewer.Resources>
+
+          <ItemsControl x:Name="CommandList"
+                        ItemsSource="{Binding}"
+                        Focusable="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel IsVirtualizing="True"
+                                        VirtualizationMode="Recycling"
+                                        Focusable="False"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Border>
+</Window>
