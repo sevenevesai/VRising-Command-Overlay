@@ -18,6 +18,9 @@ An open-source, low-impact overlay for issuing mod commands in [V Rising](https:
 ---
 
 ## Setup
+You may always download the latest exe from the [Releases](https://github.com/sevenevesai/VRising-Command-Overlay/releases) page -- no install needed, just download and start it up.
+
+Or, if you'd rather make/tweak/review the build yourself, follow the below:
 
 1. **Clone the repo**
 
