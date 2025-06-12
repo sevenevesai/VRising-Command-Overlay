@@ -54,6 +54,7 @@ namespace overlayc
 
             settings = SettingsManager.Load(SettingsFileName)
                        ?? new SettingsData { HorizontalMode = true };
+            settings.Favorites ??= new();
             if (settings.WindowLeft.HasValue) Left = settings.WindowLeft.Value;
             if (settings.WindowTop .HasValue) Top  = settings.WindowTop.Value;
 
@@ -91,6 +92,7 @@ namespace overlayc
 
             commandsData = CommandLoader.LoadCommands(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "commands.json"));
+            ApplyFavoriteFlags();
             cmdPanel = new CommandPanel(commandsData);
 
             PreviewMouseLeftButtonDown += Window_PreviewMouseLeftButtonDown;
@@ -288,6 +290,23 @@ namespace overlayc
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        private void ApplyFavoriteFlags()
+        {
+            foreach (var cat in commandsData.Values)
+                foreach (var grp in cat.Values)
+                    foreach (var cmd in grp)
+                        cmd.isStarred = settings.Favorites.Contains(cmd.template);
+        }
+
+        public void UpdateFavorite(Command cmd)
+        {
+            if (cmd.isStarred)
+                settings.Favorites.Add(cmd.template);
+            else
+                settings.Favorites.Remove(cmd.template);
+            SettingsManager.Save(SettingsFileName, settings);
         }
     }
 }

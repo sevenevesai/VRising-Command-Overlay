@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -58,10 +59,15 @@ namespace overlayc
                 System.Windows.Threading.DispatcherPriority.Render);
 
             // 2) Build the real items
-            var newItems = new List<object>();
+            var newItems = new List<Command>();
             foreach (var grp in commandsData[category])
                 foreach (var cmd in grp.Value)
                     newItems.Add(cmd);
+
+            newItems = newItems
+                .OrderByDescending(c => c.isStarred)
+                .ThenBy(c => c.label)
+                .ToList();
 
             // 3) Off-screen swap
             Visibility = Visibility.Hidden;
@@ -122,6 +128,28 @@ namespace overlayc
                         MessageBoxImage.Error);
                 }
             }
+        }
+
+        private void OnCommandRightClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is Command cmd)
+            {
+                cmd.isStarred = !cmd.isStarred;
+                if (Owner is MainWindow mw)
+                    mw.UpdateFavorite(cmd);
+
+                ResortCurrentList();
+            }
+        }
+
+        private void ResortCurrentList()
+        {
+            if (CurrentCategory == null) return;
+            var sorted = CommandList.Items.Cast<Command>()
+                .OrderByDescending(c => c.isStarred)
+                .ThenBy(c => c.label)
+                .ToList();
+            CommandList.ItemsSource = sorted;
         }
     }
 }
