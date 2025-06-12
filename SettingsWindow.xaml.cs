@@ -13,6 +13,7 @@ namespace overlayc
 
             settings = SettingsManager.Load("settings.json")
                        ?? new SettingsData { HorizontalMode = true };
+            settings.Favorites ??= new();
 
             HorizontalModeCheckbox.IsChecked = settings.HorizontalMode;
             InvertButtonsCheckbox.IsChecked  = settings.InvertButtons;
