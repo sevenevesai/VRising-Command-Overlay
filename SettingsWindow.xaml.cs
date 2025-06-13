@@ -13,6 +13,7 @@ namespace overlayc
 
             settings = SettingsManager.Load("settings.json")
                        ?? new SettingsData { HorizontalMode = true };
+            settings.Favorites ??= new();
 
             HorizontalModeCheckbox.IsChecked = settings.HorizontalMode;
             InvertButtonsCheckbox.IsChecked  = settings.InvertButtons;
@@ -23,7 +24,7 @@ namespace overlayc
             InvertButtonsCheckbox.Unchecked  += OnToggle;
 
             EditCommandsButton.Click         += (_,__) =>
-                MessageBox.Show("Command Editor coming soon");
+                (Owner as MainWindow)?.OpenEditCommands();
 
             CloseButton.Click                += (_,__) => Close();
             CloseX.Click                     += (_,__) => Close();

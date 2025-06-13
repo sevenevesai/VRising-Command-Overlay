@@ -10,14 +10,28 @@ namespace overlayc
 
         public static Dictionary<string, Dictionary<string, List<Command>>> LoadCommands(string path)
         {
-            using var stream = File.OpenRead(path);
-            using var sr     = new StreamReader(stream);
-            using var reader = new JsonTextReader(sr);
+            if (!File.Exists(path))
+                return new();
 
-            var data = _serializer
-                .Deserialize<Dictionary<string, Dictionary<string, List<Command>>>>(reader);
+            try
+            {
+                using var stream = File.OpenRead(path);
+                using var sr     = new StreamReader(stream);
+                using var reader = new JsonTextReader(sr);
 
-            return data ?? new();
+                var data = _serializer
+                    .Deserialize<Dictionary<string, Dictionary<string, List<Command>>>>(reader);
+
+                return data ?? new();
+            }
+            catch (IOException)
+            {
+                return new();
+            }
+            catch (JsonException)
+            {
+                return new();
+            }
         }
     }
 }

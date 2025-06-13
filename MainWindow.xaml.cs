@@ -34,8 +34,8 @@ namespace overlayc
         private bool isHorizontalMode;
         private bool isButtonsInverted;
 
-        private readonly Dictionary<string, Dictionary<string, List<Command>>> commandsData;
-        private readonly CommandPanel cmdPanel;
+        private Dictionary<string, Dictionary<string, List<Command>>> commandsData;
+        private CommandPanel cmdPanel;
         private KeyboardHook? keyHook;
         private readonly Dictionary<string, Button> iconButtons = new();
 
@@ -54,6 +54,7 @@ namespace overlayc
 
             settings = SettingsManager.Load(SettingsFileName)
                        ?? new SettingsData { HorizontalMode = true };
+            settings.Favorites ??= new();
             if (settings.WindowLeft.HasValue) Left = settings.WindowLeft.Value;
             if (settings.WindowTop .HasValue) Top  = settings.WindowTop.Value;
 
@@ -89,8 +90,10 @@ namespace overlayc
                         DispatcherPriority.Normal);
             };
 
+            string cmdFile = settings.CommandPreset ?? "commands.json";
             commandsData = CommandLoader.LoadCommands(
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "commands.json"));
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, cmdFile));
+            ApplyFavoriteFlags();
             cmdPanel = new CommandPanel(commandsData);
 
             PreviewMouseLeftButtonDown += Window_PreviewMouseLeftButtonDown;
@@ -246,7 +249,42 @@ namespace overlayc
 
         public void OpenEditCommands()
         {
-            MessageBox.Show("Edit Commands clicked");
+            try
+            {
+                var editor = new CommandEditorWindow(settings.CommandPreset ?? "commands.json")
+                {
+                    Owner = this
+                };
+                editor.CommandsSaved += file =>
+                {
+                    settings.CommandPreset = file;
+                    SettingsManager.Save(SettingsFileName, settings);
+                    ReloadCommands(file);
+                };
+                editor.PresetChanged += file =>
+                {
+                    ReloadCommands(file);
+                };
+                editor.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open Command Editor:\n{ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ReloadCommands(string file)
+        {
+            commandsData = CommandLoader.LoadCommands(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file));
+            ApplyFavoriteFlags();
+            cmdPanel.Close();
+            cmdPanel = new CommandPanel(commandsData);
+            IconBarPanel.Children.Clear();
+            iconButtons.Clear();
+            PopulateIcons();
+            HighlightIcon(null);
         }
 
         private void PositionCommandWindow()
@@ -288,6 +326,23 @@ namespace overlayc
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        private void ApplyFavoriteFlags()
+        {
+            foreach (var cat in commandsData.Values)
+                foreach (var grp in cat.Values)
+                    foreach (var cmd in grp)
+                        cmd.isStarred = settings.Favorites.Contains(cmd.template);
+        }
+
+        public void UpdateFavorite(Command cmd)
+        {
+            if (cmd.isStarred)
+                settings.Favorites.Add(cmd.template);
+            else
+                settings.Favorites.Remove(cmd.template);
+            SettingsManager.Save(SettingsFileName, settings);
         }
     }
 }

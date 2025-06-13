@@ -98,9 +98,10 @@
 
     <DataTemplate DataType="{x:Type local:Command}">
       <Button Style="{StaticResource CommandButtonStyle}"
-              Content="{Binding label}"
+              Content="{Binding displayLabel}"
               ToolTip="{Binding description}"
-              Click="OnCommandClick"/>
+              Click="OnCommandClick"
+              MouseRightButtonUp="OnCommandRightClick"/>
     </DataTemplate>
 
     <Style x:Key="InvisibleRepeatButton" TargetType="RepeatButton">
