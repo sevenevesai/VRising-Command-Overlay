@@ -29,8 +29,6 @@ namespace overlayc
             CmdTemplateBox.TextChanged += CmdTemplateBox_TextChanged;
             SaveButton.Click += OnSave;
             SaveAsButton.Click += OnSaveAs;
-            CloseButton.Click += (_,__) => Close();
-            CloseX.Click += (_,__) => Close();
 
             LoadPresetList();
             LoadPreset(Path.Combine(baseDir, presetFile));
@@ -141,6 +139,8 @@ namespace overlayc
             var json = JsonConvert.SerializeObject(commandsData, Formatting.Indented);
             File.WriteAllText(path, json);
         }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
         private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
