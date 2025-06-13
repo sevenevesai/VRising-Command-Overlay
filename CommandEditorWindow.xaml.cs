@@ -102,7 +102,7 @@ namespace overlayc
             if (preserveState)
                 (expanded, selected) = CaptureState();
 
-            RebuildTree(true);
+            BuildTree();
 
             if (preserveState && expanded != null)
                 ApplyState(expanded, selected);
