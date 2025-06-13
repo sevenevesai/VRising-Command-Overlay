@@ -24,7 +24,7 @@ namespace overlayc
             InvertButtonsCheckbox.Unchecked  += OnToggle;
 
             EditCommandsButton.Click         += (_,__) =>
-                MessageBox.Show("Command Editor coming soon");
+                (Owner as MainWindow)?.OpenEditCommands();
 
             CloseButton.Click                += (_,__) => Close();
             CloseX.Click                     += (_,__) => Close();
