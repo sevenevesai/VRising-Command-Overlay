@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 
 namespace overlayc
@@ -13,6 +14,8 @@ namespace overlayc
     {
         private readonly string baseDir = AppDomain.CurrentDomain.BaseDirectory;
         private Dictionary<string, Dictionary<string, List<Command>>> commandsData = new();
+        private readonly Stack<string> undoStack = new();
+        private readonly Stack<string> redoStack = new();
         private string currentFile;
         private Command? selectedCommand;
 
@@ -29,6 +32,8 @@ namespace overlayc
             CmdTemplateBox.TextChanged += CmdTemplateBox_TextChanged;
             SaveButton.Click += OnSave;
             SaveAsButton.Click += OnSaveAs;
+            UndoButton.Click += (_,__) => UndoAction();
+            RedoButton.Click += (_,__) => RedoAction();
 
             LoadPresetList();
             LoadPreset(Path.Combine(baseDir, presetFile));
@@ -57,19 +62,51 @@ namespace overlayc
             CommandTree.Items.Clear();
             foreach (var cat in commandsData)
             {
-                var catItem = new TreeViewItem { Header = cat.Key };
+                var catItem = new TreeViewItem
+                {
+                    Header = cat.Key,
+                    Tag    = $"cat:{cat.Key}",
+                    ContextMenu = BuildContextMenu()
+                };
                 foreach (var grp in cat.Value)
                 {
-                    var grpItem = new TreeViewItem { Header = grp.Key };
+                    var grpItem = new TreeViewItem
+                    {
+                        Header = grp.Key,
+                        Tag    = $"grp:{cat.Key}/{grp.Key}",
+                        ContextMenu = BuildContextMenu()
+                    };
                     foreach (var cmd in grp.Value)
                     {
-                        var cmdItem = new TreeViewItem { Header = cmd.label, Tag = cmd };
+                        var cmdItem = new TreeViewItem
+                        {
+                            Header = cmd.label,
+                            Tag    = cmd,
+                            ContextMenu = BuildContextMenu()
+                        };
                         grpItem.Items.Add(cmdItem);
                     }
                     catItem.Items.Add(grpItem);
                 }
                 CommandTree.Items.Add(catItem);
             }
+        }
+
+        private ContextMenu BuildContextMenu()
+        {
+            var menu = new ContextMenu();
+            menu.Opened += (s,e) =>
+            {
+                if (menu.PlacementTarget is TreeViewItem t)
+                    t.IsSelected = true;
+            };
+            var rename = new MenuItem { Header = "Rename" };
+            rename.Click += (_,__) => RenameSelected();
+            var del = new MenuItem { Header = "Delete" };
+            del.Click += (_,__) => DeleteSelected();
+            menu.Items.Add(rename);
+            menu.Items.Add(del);
+            return menu;
         }
 
         private void PresetDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -110,11 +147,79 @@ namespace overlayc
                 selectedCommand.template = CmdTemplateBox.Text;
         }
 
+        private void RenameSelected()
+        {
+            if (CommandTree.SelectedItem is not TreeViewItem tv) return;
+            string oldName = tv.Header.ToString() ?? string.Empty;
+            string newName = Interaction.InputBox("New name:", "Rename", oldName).Trim();
+            if (string.IsNullOrEmpty(newName) || newName == oldName) return;
+
+            PushUndo();
+
+            if (tv.Tag is Command cmd)
+            {
+                cmd.label = newName;
+                tv.Header = newName;
+            }
+            else if (tv.Tag is string tag)
+            {
+                if (tag.StartsWith("grp:"))
+                {
+                    var parts = tag.Substring(4).Split('/');
+                    string cat = parts[0];
+                    string grp = parts[1];
+                    var groupDict = commandsData[cat];
+                    var cmds = groupDict[grp];
+                    groupDict.Remove(grp);
+                    groupDict[newName] = cmds;
+                }
+                else if (tag.StartsWith("cat:"))
+                {
+                    string cat = tag.Substring(4);
+                    var groups = commandsData[cat];
+                    commandsData.Remove(cat);
+                    commandsData[newName] = groups;
+                }
+            }
+
+            BuildTree();
+        }
+
+        private void DeleteSelected()
+        {
+            if (CommandTree.SelectedItem is not TreeViewItem tv) return;
+            PushUndo();
+            if (tv.Tag is Command cmd)
+            {
+                foreach (var cat in commandsData.Values)
+                    foreach (var grp in cat.Values)
+                        if (grp.Remove(cmd))
+                            break;
+            }
+            else if (tv.Tag is string tag)
+            {
+                if (tag.StartsWith("grp:"))
+                {
+                    var parts = tag.Substring(4).Split('/');
+                    string cat = parts[0];
+                    string grp = parts[1];
+                    commandsData[cat].Remove(grp);
+                }
+                else if (tag.StartsWith("cat:"))
+                {
+                    string cat = tag.Substring(4);
+                    commandsData.Remove(cat);
+                }
+            }
+
+            BuildTree();
+        }
+
         private void OnSave(object sender, RoutedEventArgs e)
         {
             SaveTo(Path.Combine(baseDir, currentFile));
             CommandsSaved?.Invoke(currentFile);
-            Close();
+            BuildTree();
         }
 
         private void OnSaveAs(object sender, RoutedEventArgs e)
@@ -130,7 +235,7 @@ namespace overlayc
                 currentFile = Path.GetFileName(dlg.FileName);
                 SaveTo(dlg.FileName);
                 CommandsSaved?.Invoke(currentFile);
-                Close();
+                BuildTree();
             }
         }
 
@@ -138,6 +243,33 @@ namespace overlayc
         {
             var json = JsonConvert.SerializeObject(commandsData, Formatting.Indented);
             File.WriteAllText(path, json);
+        }
+
+        private void PushUndo()
+        {
+            var json = JsonConvert.SerializeObject(commandsData);
+            undoStack.Push(json);
+            redoStack.Clear();
+        }
+
+        private void UndoAction()
+        {
+            if (undoStack.Count == 0) return;
+            var json = JsonConvert.SerializeObject(commandsData);
+            redoStack.Push(json);
+            json = undoStack.Pop();
+            commandsData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, List<Command>>>>(json)!;
+            BuildTree();
+        }
+
+        private void RedoAction()
+        {
+            if (redoStack.Count == 0) return;
+            var json = JsonConvert.SerializeObject(commandsData);
+            undoStack.Push(json);
+            json = redoStack.Pop();
+            commandsData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, List<Command>>>>(json)!;
+            BuildTree();
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
