@@ -249,17 +249,29 @@ namespace overlayc
 
         public void OpenEditCommands()
         {
-            var editor = new CommandEditorWindow(settings.CommandPreset ?? "commands.json")
+            try
             {
-                Owner = this
-            };
-            editor.CommandsSaved += file =>
+                var editor = new CommandEditorWindow(settings.CommandPreset ?? "commands.json")
+                {
+                    Owner = this
+                };
+                editor.CommandsSaved += file =>
+                {
+                    settings.CommandPreset = file;
+                    SettingsManager.Save(SettingsFileName, settings);
+                    ReloadCommands(file);
+                };
+                editor.PresetChanged += file =>
+                {
+                    ReloadCommands(file);
+                };
+                editor.ShowDialog();
+            }
+            catch (Exception ex)
             {
-                settings.CommandPreset = file;
-                SettingsManager.Save(SettingsFileName, settings);
-                ReloadCommands(file);
-            };
-            editor.ShowDialog();
+                MessageBox.Show($"Failed to open Command Editor:\n{ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void ReloadCommands(string file)
