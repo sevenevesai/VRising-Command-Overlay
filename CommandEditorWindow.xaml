@@ -56,7 +56,8 @@
     </Style>
 
     <!-- Right-click context menu for tree items -->
-    <Style TargetType="TreeViewItem">
+    <Style TargetType="TreeViewItem"
+           BasedOn="{StaticResource {x:Type TreeViewItem}}">
       <Setter Property="ContextMenu">
         <Setter.Value>
           <ContextMenu>
