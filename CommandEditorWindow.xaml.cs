@@ -20,6 +20,7 @@ namespace overlayc
         private bool isLoaded;
 
         public event Action<string>? CommandsSaved;
+        public event Action<string>? PresetChanged;
 
         public CommandEditorWindow(string presetFile)
         {
@@ -204,6 +205,7 @@ namespace overlayc
             {
                 currentFile = file;
                 LoadPreset(Path.Combine(baseDir, file));
+                PresetChanged?.Invoke(currentFile);
             }
         }
 
@@ -325,6 +327,7 @@ namespace overlayc
             {
                 currentFile = Path.GetFileName(dlg.FileName);
                 SaveTo(dlg.FileName);
+                LoadPresetList();
                 CommandsSaved?.Invoke(currentFile);
                 RebuildTree(true);
             }

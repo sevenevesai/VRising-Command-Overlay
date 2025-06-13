@@ -261,6 +261,10 @@ namespace overlayc
                     SettingsManager.Save(SettingsFileName, settings);
                     ReloadCommands(file);
                 };
+                editor.PresetChanged += file =>
+                {
+                    ReloadCommands(file);
+                };
                 editor.ShowDialog();
             }
             catch (Exception ex)
