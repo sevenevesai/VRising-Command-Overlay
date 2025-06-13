@@ -61,19 +61,33 @@ namespace overlayc
             CommandTree.Items.Clear();
             foreach (var cat in commandsData)
             {
-                var catItem = new TreeViewItem { Header = cat.Key };
+                var catItem = CreateItem(cat.Key, null);
                 foreach (var grp in cat.Value)
                 {
-                    var grpItem = new TreeViewItem { Header = grp.Key };
+                    var grpItem = CreateItem(grp.Key, null);
                     foreach (var cmd in grp.Value)
                     {
-                        var cmdItem = new TreeViewItem { Header = cmd.label, Tag = cmd };
+                        var cmdItem = CreateItem(cmd.label, cmd);
                         grpItem.Items.Add(cmdItem);
                     }
                     catItem.Items.Add(grpItem);
                 }
                 CommandTree.Items.Add(catItem);
             }
+        }
+
+        private TreeViewItem CreateItem(string header, object? tag)
+        {
+            var item = new TreeViewItem { Header = header, Tag = tag };
+            var menu = new ContextMenu();
+            var rename = new MenuItem { Header = "Rename" };
+            rename.Click += RenameItem_Click;
+            var del = new MenuItem { Header = "Delete" };
+            del.Click += DeleteItem_Click;
+            menu.Items.Add(rename);
+            menu.Items.Add(del);
+            item.ContextMenu = menu;
+            return item;
         }
 
         private void PresetDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)

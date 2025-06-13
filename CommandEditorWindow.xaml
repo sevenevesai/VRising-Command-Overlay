@@ -55,18 +55,6 @@
       <Setter Property="HorizontalAlignment" Value="Center"/>
     </Style>
 
-    <!-- Right-click context menu for tree items -->
-    <Style TargetType="TreeViewItem"
-           BasedOn="{StaticResource {x:Type TreeViewItem}}">
-      <Setter Property="ContextMenu">
-        <Setter.Value>
-          <ContextMenu>
-            <MenuItem Header="Rename" Click="RenameItem_Click"/>
-            <MenuItem Header="Delete" Click="DeleteItem_Click"/>
-          </ContextMenu>
-        </Setter.Value>
-      </Setter>
-    </Style>
   </Window.Resources>
 
   <Border Background="{StaticResource WindowBg}"
