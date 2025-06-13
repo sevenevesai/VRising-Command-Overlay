@@ -190,8 +190,8 @@ namespace overlayc
             {
                 if (menu.PlacementTarget is TreeViewItem t)
                     t.IsSelected = true;
-                else if (menu.PlacementTarget == CommandTree)
-                    CommandTree.SelectedItem = null;
+                else if (menu.PlacementTarget == CommandTree && CommandTree.SelectedItem is TreeViewItem sel)
+                    sel.IsSelected = false;
             };
 
             if (tag == null)
