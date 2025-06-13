@@ -34,8 +34,8 @@ namespace overlayc
         private bool isHorizontalMode;
         private bool isButtonsInverted;
 
-        private readonly Dictionary<string, Dictionary<string, List<Command>>> commandsData;
-        private readonly CommandPanel cmdPanel;
+        private Dictionary<string, Dictionary<string, List<Command>>> commandsData;
+        private CommandPanel cmdPanel;
         private KeyboardHook? keyHook;
         private readonly Dictionary<string, Button> iconButtons = new();
 
@@ -90,8 +90,9 @@ namespace overlayc
                         DispatcherPriority.Normal);
             };
 
+            string cmdFile = settings.CommandPreset ?? "commands.json";
             commandsData = CommandLoader.LoadCommands(
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "commands.json"));
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, cmdFile));
             ApplyFavoriteFlags();
             cmdPanel = new CommandPanel(commandsData);
 
@@ -248,7 +249,30 @@ namespace overlayc
 
         public void OpenEditCommands()
         {
-            MessageBox.Show("Edit Commands clicked");
+            var editor = new CommandEditorWindow(settings.CommandPreset ?? "commands.json")
+            {
+                Owner = this
+            };
+            editor.CommandsSaved += file =>
+            {
+                settings.CommandPreset = file;
+                SettingsManager.Save(SettingsFileName, settings);
+                ReloadCommands(file);
+            };
+            editor.ShowDialog();
+        }
+
+        private void ReloadCommands(string file)
+        {
+            commandsData = CommandLoader.LoadCommands(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file));
+            ApplyFavoriteFlags();
+            cmdPanel.Close();
+            cmdPanel = new CommandPanel(commandsData);
+            IconBarPanel.Children.Clear();
+            iconButtons.Clear();
+            PopulateIcons();
+            HighlightIcon(null);
         }
 
         private void PositionCommandWindow()
