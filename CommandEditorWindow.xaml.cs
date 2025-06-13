@@ -18,6 +18,7 @@ namespace overlayc
         private readonly Stack<string> redoStack = new();
         private string currentFile;
         private Command? selectedCommand;
+        private bool isLoaded;
 
         public event Action<string>? CommandsSaved;
 
@@ -37,6 +38,8 @@ namespace overlayc
 
             LoadPresetList();
             LoadPreset(Path.Combine(baseDir, presetFile));
+            UpdateUndoRedoButtons();
+            isLoaded = true;
         }
 
         private void LoadPresetList()
@@ -54,7 +57,7 @@ namespace overlayc
         private void LoadPreset(string path)
         {
             commandsData = CommandLoader.LoadCommands(path);
-            BuildTree();
+            RebuildTree(false);
         }
 
         private void BuildTree()
@@ -90,6 +93,93 @@ namespace overlayc
                 }
                 CommandTree.Items.Add(catItem);
             }
+        }
+
+        private void RebuildTree(bool preserveState)
+        {
+            HashSet<string>? expanded = null;
+            object? selected = null;
+            if (preserveState)
+                (expanded, selected) = CaptureState();
+
+            RebuildTree(true);
+
+            if (preserveState && expanded != null)
+                ApplyState(expanded, selected);
+            UpdateUndoRedoButtons();
+        }
+
+        private (HashSet<string> expanded, object? selected) CaptureState()
+        {
+            var expanded = new HashSet<string>();
+            object? selected = null;
+
+            foreach (TreeViewItem catItem in CommandTree.Items)
+            {
+                if (catItem.IsExpanded)
+                    expanded.Add((string)catItem.Tag);
+                foreach (TreeViewItem grpItem in catItem.Items)
+                {
+                    if (grpItem.IsExpanded)
+                        expanded.Add((string)grpItem.Tag);
+                    foreach (TreeViewItem cmdItem in grpItem.Items)
+                    {
+                        if (cmdItem.IsExpanded && cmdItem.Tag is Command c)
+                            expanded.Add($"cmd:{c.label}");
+                    }
+                }
+            }
+
+            if (CommandTree.SelectedItem is TreeViewItem sel)
+            {
+                if (sel.Tag is Command cmd)
+                    selected = cmd;
+                else
+                    selected = sel.Tag;
+            }
+            return (expanded, selected);
+        }
+
+        private void ApplyState(HashSet<string> expanded, object? selected)
+        {
+            TreeViewItem? toSelect = null;
+            foreach (TreeViewItem catItem in CommandTree.Items)
+            {
+                if (expanded.Contains((string)catItem.Tag))
+                    catItem.IsExpanded = true;
+                if (selected != null && Equals(selected, catItem.Tag))
+                    toSelect = catItem;
+                foreach (TreeViewItem grpItem in catItem.Items)
+                {
+                    if (expanded.Contains((string)grpItem.Tag))
+                        grpItem.IsExpanded = true;
+                    if (selected != null && Equals(selected, grpItem.Tag))
+                        toSelect = grpItem;
+                    foreach (TreeViewItem cmdItem in grpItem.Items)
+                    {
+                        if (cmdItem.Tag is Command c)
+                        {
+                            if (expanded.Contains($"cmd:{c.label}"))
+                                cmdItem.IsExpanded = true;
+                            if (selected != null && ReferenceEquals(selected, c))
+                                toSelect = cmdItem;
+                        }
+                    }
+                }
+            }
+
+            if (toSelect != null)
+            {
+                toSelect.IsSelected = true;
+                toSelect.BringIntoView();
+            }
+        }
+
+        private void UpdateUndoRedoButtons()
+        {
+            if (!isLoaded) return;
+            UndoButton.IsEnabled = undoStack.Count > 0;
+            RedoButton.IsEnabled = redoStack.Count > 0;
         }
 
         private ContextMenu BuildContextMenu()
@@ -151,7 +241,9 @@ namespace overlayc
         {
             if (CommandTree.SelectedItem is not TreeViewItem tv) return;
             string oldName = tv.Header.ToString() ?? string.Empty;
-            string newName = Interaction.InputBox("New name:", "Rename", oldName).Trim();
+            var dlg = new InputDialog("Rename", "New name:", oldName) { Owner = this };
+            if (dlg.ShowDialog() != true) return;
+            string newName = dlg.Input.Trim();
             if (string.IsNullOrEmpty(newName) || newName == oldName) return;
 
             PushUndo();
@@ -182,7 +274,7 @@ namespace overlayc
                 }
             }
 
-            BuildTree();
+            RebuildTree(true);
         }
 
         private void DeleteSelected()
@@ -212,14 +304,14 @@ namespace overlayc
                 }
             }
 
-            BuildTree();
+            RebuildTree(true);
         }
 
         private void OnSave(object sender, RoutedEventArgs e)
         {
             SaveTo(Path.Combine(baseDir, currentFile));
             CommandsSaved?.Invoke(currentFile);
-            BuildTree();
+            RebuildTree(true);
         }
 
         private void OnSaveAs(object sender, RoutedEventArgs e)
@@ -235,7 +327,7 @@ namespace overlayc
                 currentFile = Path.GetFileName(dlg.FileName);
                 SaveTo(dlg.FileName);
                 CommandsSaved?.Invoke(currentFile);
-                BuildTree();
+                RebuildTree(true);
             }
         }
 
@@ -250,6 +342,7 @@ namespace overlayc
             var json = JsonConvert.SerializeObject(commandsData);
             undoStack.Push(json);
             redoStack.Clear();
+            UpdateUndoRedoButtons();
         }
 
         private void UndoAction()
@@ -259,7 +352,8 @@ namespace overlayc
             redoStack.Push(json);
             json = undoStack.Pop();
             commandsData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, List<Command>>>>(json)!;
-            BuildTree();
+            RebuildTree(true);
+            UpdateUndoRedoButtons();
         }
 
         private void RedoAction()
@@ -269,7 +363,8 @@ namespace overlayc
             undoStack.Push(json);
             json = redoStack.Pop();
             commandsData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, List<Command>>>>(json)!;
-            BuildTree();
+            RebuildTree(true);
+            UpdateUndoRedoButtons();
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
