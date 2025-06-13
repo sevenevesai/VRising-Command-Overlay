@@ -63,13 +63,14 @@ namespace overlayc
         private void BuildTree()
         {
             CommandTree.Items.Clear();
+            CommandTree.ContextMenu = BuildContextMenu(null);
             foreach (var cat in commandsData)
             {
                 var catItem = new TreeViewItem
                 {
                     Header = cat.Key,
                     Tag    = $"cat:{cat.Key}",
-                    ContextMenu = BuildContextMenu()
+                    ContextMenu = BuildContextMenu($"cat:{cat.Key}")
                 };
                 foreach (var grp in cat.Value)
                 {
@@ -77,7 +78,7 @@ namespace overlayc
                     {
                         Header = grp.Key,
                         Tag    = $"grp:{cat.Key}/{grp.Key}",
-                        ContextMenu = BuildContextMenu()
+                        ContextMenu = BuildContextMenu($"grp:{cat.Key}/{grp.Key}")
                     };
                     foreach (var cmd in grp.Value)
                     {
@@ -85,7 +86,7 @@ namespace overlayc
                         {
                             Header = cmd.label,
                             Tag    = cmd,
-                            ContextMenu = BuildContextMenu()
+                            ContextMenu = BuildContextMenu(cmd)
                         };
                         grpItem.Items.Add(cmdItem);
                     }
@@ -182,20 +183,39 @@ namespace overlayc
             RedoButton.IsEnabled = redoStack.Count > 0;
         }
 
-        private ContextMenu BuildContextMenu()
+        private ContextMenu BuildContextMenu(object? tag)
         {
             var menu = new ContextMenu();
-            menu.Opened += (s,e) =>
+            menu.Opened += (s, e) =>
             {
                 if (menu.PlacementTarget is TreeViewItem t)
                     t.IsSelected = true;
+                else if (menu.PlacementTarget == CommandTree && CommandTree.SelectedItem is TreeViewItem sel)
+                    sel.IsSelected = false;
             };
+
+            if (tag == null)
+            {
+                var createRoot = new MenuItem { Header = "Create" };
+                createRoot.Click += (_, __) => CreateItem(null);
+                menu.Items.Add(createRoot);
+                return menu;
+            }
+
             var rename = new MenuItem { Header = "Rename" };
-            rename.Click += (_,__) => RenameSelected();
+            rename.Click += (_, __) => RenameSelected();
             var del = new MenuItem { Header = "Delete" };
-            del.Click += (_,__) => DeleteSelected();
+            del.Click += (_, __) => DeleteSelected();
             menu.Items.Add(rename);
             menu.Items.Add(del);
+
+            if (tag is string strTag && (strTag.StartsWith("cat:") || strTag.StartsWith("grp:")))
+            {
+                var create = new MenuItem { Header = "Create" };
+                create.Click += (_, __) => CreateItem(CommandTree.SelectedItem as TreeViewItem);
+                menu.Items.Add(create);
+            }
+
             return menu;
         }
 
@@ -302,6 +322,53 @@ namespace overlayc
                 {
                     string cat = tag.Substring(4);
                     commandsData.Remove(cat);
+                }
+            }
+
+            RebuildTree(true);
+        }
+
+        private void CreateItem(TreeViewItem? parent)
+        {
+            string? input;
+            if (parent == null)
+            {
+                var dlg = new InputDialog("Create Category", "Name:") { Owner = this };
+                if (dlg.ShowDialog() != true) return;
+                input = dlg.Input.Trim();
+                if (string.IsNullOrEmpty(input)) return;
+
+                PushUndo();
+                if (!commandsData.ContainsKey(input))
+                    commandsData[input] = new Dictionary<string, List<Command>>();
+            }
+            else if (parent.Tag is string tag)
+            {
+                if (tag.StartsWith("cat:"))
+                {
+                    var dlg = new InputDialog("Create Group", "Name:") { Owner = this };
+                    if (dlg.ShowDialog() != true) return;
+                    input = dlg.Input.Trim();
+                    if (string.IsNullOrEmpty(input)) return;
+
+                    string cat = tag.Substring(4);
+                    PushUndo();
+                    var groupDict = commandsData[cat];
+                    if (!groupDict.ContainsKey(input))
+                        groupDict[input] = new List<Command>();
+                }
+                else if (tag.StartsWith("grp:"))
+                {
+                    var dlg = new InputDialog("Create Command", "Label:") { Owner = this };
+                    if (dlg.ShowDialog() != true) return;
+                    input = dlg.Input.Trim();
+                    if (string.IsNullOrEmpty(input)) return;
+
+                    var parts = tag.Substring(4).Split('/');
+                    string cat = parts[0];
+                    string grp = parts[1];
+                    PushUndo();
+                    commandsData[cat][grp].Add(new Command { label = input, template = string.Empty });
                 }
             }
 
