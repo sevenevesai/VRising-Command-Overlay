@@ -54,6 +54,18 @@
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="HorizontalAlignment" Value="Center"/>
     </Style>
+
+    <!-- Right-click context menu for tree items -->
+    <Style TargetType="TreeViewItem">
+      <Setter Property="ContextMenu">
+        <Setter.Value>
+          <ContextMenu>
+            <MenuItem Header="Rename" Click="RenameItem_Click"/>
+            <MenuItem Header="Delete" Click="DeleteItem_Click"/>
+          </ContextMenu>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Window.Resources>
 
   <Border Background="{StaticResource WindowBg}"
@@ -85,6 +97,13 @@
           <TextBox x:Name="CmdLabelBox" FontSize="16" Margin="0,0,0,4"/>
           <TextBlock Text="Template:" FontSize="16"/>
           <TextBox x:Name="CmdTemplateBox" FontSize="16"/>
+
+          <StackPanel x:Name="ParamOptionsPanel" Visibility="Collapsed" Margin="0,8,0,0">
+            <TextBlock x:Name="ParamNameLabel" FontSize="16" Margin="0,0,0,4"/>
+            <CheckBox x:Name="DropdownCheck" Content="Enable Dropdown Selection"/>
+            <TextBlock Text="Options (comma separated):" FontSize="16" Margin="0,4,0,0"/>
+            <TextBox x:Name="DropdownOptionsBox" FontSize="16" Margin="0,0,0,4"/>
+          </StackPanel>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

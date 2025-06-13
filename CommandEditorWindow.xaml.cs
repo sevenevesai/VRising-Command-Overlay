@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 
 namespace overlayc
@@ -27,6 +28,9 @@ namespace overlayc
             CommandTree.SelectedItemChanged += OnSelectedItemChanged;
             CmdLabelBox.TextChanged += CmdLabelBox_TextChanged;
             CmdTemplateBox.TextChanged += CmdTemplateBox_TextChanged;
+            DropdownCheck.Checked      += DropdownCheck_Changed;
+            DropdownCheck.Unchecked    += DropdownCheck_Changed;
+            DropdownOptionsBox.TextChanged += DropdownOptionsBox_TextChanged;
             SaveButton.Click += OnSave;
             SaveAsButton.Click += OnSaveAs;
 
@@ -91,6 +95,27 @@ namespace overlayc
                 CommandEditPanel.Visibility = Visibility.Visible;
                 CmdLabelBox.Text = cmd.label;
                 CmdTemplateBox.Text = cmd.template;
+
+                if (cmd.@params != null && cmd.@params.Count > 0)
+                {
+                    string p = cmd.@params[0];
+                    ParamNameLabel.Text = $"Param: [{p}]";
+                    ParamOptionsPanel.Visibility = Visibility.Visible;
+                    if (cmd.options != null && cmd.options.TryGetValue(p, out var opts) && opts.Count > 0)
+                    {
+                        DropdownCheck.IsChecked = true;
+                        DropdownOptionsBox.Text = string.Join(", ", opts);
+                    }
+                    else
+                    {
+                        DropdownCheck.IsChecked = false;
+                        DropdownOptionsBox.Text = string.Empty;
+                    }
+                }
+                else
+                {
+                    ParamOptionsPanel.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
@@ -114,7 +139,7 @@ namespace overlayc
         {
             SaveTo(Path.Combine(baseDir, currentFile));
             CommandsSaved?.Invoke(currentFile);
-            Close();
+            // Stay open after saving
         }
 
         private void OnSaveAs(object sender, RoutedEventArgs e)
@@ -138,6 +163,107 @@ namespace overlayc
         {
             var json = JsonConvert.SerializeObject(commandsData, Formatting.Indented);
             File.WriteAllText(path, json);
+        }
+
+        // ─── Dropdown param editing ─────────────────────────────────────────
+        private void DropdownCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            if (selectedCommand == null || selectedCommand.@params == null || selectedCommand.@params.Count == 0)
+                return;
+            string p = selectedCommand.@params[0];
+
+            if (DropdownCheck.IsChecked == true)
+            {
+                selectedCommand.options ??= new();
+                selectedCommand.options[p] = ParseOptions(DropdownOptionsBox.Text);
+            }
+            else
+            {
+                selectedCommand.options?.Remove(p);
+            }
+        }
+
+        private void DropdownOptionsBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (DropdownCheck.IsChecked != true || selectedCommand == null || selectedCommand.@params == null || selectedCommand.@params.Count == 0)
+                return;
+            string p = selectedCommand.@params[0];
+            selectedCommand.options ??= new();
+            selectedCommand.options[p] = ParseOptions(DropdownOptionsBox.Text);
+        }
+
+        private static List<string> ParseOptions(string text)
+        {
+            return text.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                       .Select(s => s.Trim())
+                       .Where(s => s.Length > 0)
+                       .ToList();
+        }
+
+        // ─── Context menu actions ───────────────────────────────────────────
+        private void RenameItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (CommandTree.SelectedItem is not TreeViewItem item) return;
+
+            string current = item.Header?.ToString() ?? string.Empty;
+            string input = Interaction.InputBox("Enter new name:", "Rename", current);
+            if (string.IsNullOrWhiteSpace(input) || input == current) return;
+
+            if (item.Tag is Command cmd)
+            {
+                cmd.label = input;
+                item.Header = input;
+            }
+            else if (GetParent(item) is TreeViewItem parent)
+            {
+                // group rename
+                string cat = parent.Header.ToString()!;
+                var grpList = commandsData[cat][current];
+                commandsData[cat].Remove(current);
+                commandsData[cat][input] = grpList;
+            }
+            else
+            {
+                // category rename
+                var val = commandsData[current];
+                commandsData.Remove(current);
+                commandsData[input] = val;
+            }
+
+            BuildTree();
+        }
+
+        private void DeleteItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (CommandTree.SelectedItem is not TreeViewItem item) return;
+
+            if (item.Tag is Command cmd)
+            {
+                foreach (var cat in commandsData.Values)
+                    foreach (var grp in cat.Values)
+                        if (grp.Remove(cmd)) break;
+            }
+            else if (GetParent(item) is TreeViewItem parent)
+            {
+                // delete group
+                string catName = parent.Header.ToString()!;
+                string grpName = item.Header.ToString()!;
+                commandsData[catName].Remove(grpName);
+            }
+            else
+            {
+                // delete category
+                string catName = item.Header.ToString()!;
+                commandsData.Remove(catName);
+            }
+
+            BuildTree();
+            CommandEditPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private static TreeViewItem? GetParent(TreeViewItem item)
+        {
+            return ItemsControl.ItemsControlFromItemContainer(item) as TreeViewItem;
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
